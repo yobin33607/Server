@@ -1,4 +1,4 @@
-<!-- Thanks for contributing to the Cortex Realm bot! Please fill out the sections below. -->
+<!-- Thanks for contributing to the Byte Labs Server bot! Please fill out the sections below. -->
 
 ## Description
 

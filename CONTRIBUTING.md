@@ -1,4 +1,4 @@
-# Contributing to Cortex Realm Bot
+# Contributing to Byte Labs Server Bot
 
 Thanks for taking the time to contribute! This document explains how to get set up and the conventions this project follows.
 
@@ -52,7 +52,7 @@ There is no automated test suite. Before opening a PR:
 
 ## Reporting bugs and requesting features
 
-Open an issue on the repository, or reach us in the [Cortex Realm Support Server](https://discord.gg/EWr3GgP6fe).
+Open an issue on the repository, or reach us in the [Byte Labs Server](https://discord.gg/wZuTsF5Z2P).
 
 ## Security
 
