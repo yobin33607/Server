@@ -1,57 +1,58 @@
-import { ActivityType, Client, GatewayIntentBits, REST, Routes } from 'discord.js';
+require('dotenv').config();
 
-import { config } from './config.js';
-import { createInteractionHandler, loadCommands } from './handlers/interaction-create.js';
-import { JsonDatabase } from './services/database.js';
-import { VerificationService } from './services/verification-service.js';
-
-if (!config.token) {
-  throw new Error('DISCORD_TOKEN is required.');
-}
-
-const database = new JsonDatabase(config.databasePath);
-await database.initialize();
-
-const verification = new VerificationService(database);
-const commands = await loadCommands();
-const commandBody = [...commands.values()].map((command) => command.data.toJSON());
-
-if (!config.clientId) {
-  throw new Error('DISCORD_CLIENT_ID is required.');
-}
-
-async function deployCommands() {
-  const rest = new REST({ version: '10' }).setToken(config.token);
-  await rest.put(Routes.applicationCommands(config.clientId), {
-    body: commandBody
-  });
-  console.log('Deployed global commands.');
-}
+const { Client, GatewayIntentBits, Collection, PermissionFlagsBits } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
+const { init } = require('./database');
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildModeration,
+    GatewayIntentBits.GuildPresences
+  ]
 });
 
-client.once('ready', async (readyClient) => {
-  await deployCommands();
-  readyClient.user.setActivity('Server Security | Byte Labs', {
-    type: ActivityType.Watching
-  });
-  console.log(`Logged in as ${readyClient.user.tag}`);
-  setInterval(() => {
-    verification.cleanupExpiredChallenges(readyClient).catch(console.error);
-  }, 60_000);
-});
+client.commands = new Collection();
+client.prefix = process.env.PREFIX || '!';
 
-client.on(
-  'interactionCreate',
-  createInteractionHandler({
-    commands,
-    services: {
-      database,
-      verification
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
+
+for (const file of commandFiles) {
+  try {
+    const command = require(path.join(commandsPath, file));
+    client.commands.set(command.name, command);
+    for (const alias of command.aliases || []) {
+      client.commands.set(alias, command);
     }
-  })
-);
+  } catch (error) {
+    console.error(`[WARN] Failed to load command ${file}:`, error.message);
+  }
+}
 
-await client.login(config.token);
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(f => f.endsWith('.js'));
+
+for (const file of eventFiles) {
+  const event = require(path.join(eventsPath, file));
+  if (event.once) {
+    client.once(event.name, (...args) => event.execute(...args));
+  } else {
+    client.on(event.name, (...args) => event.execute(...args));
+  }
+}
+
+(async () => {
+  try {
+    await init();
+    console.log('[DB] Database initialized');
+    await client.login(process.env.DISCORD_TOKEN);
+  } catch (error) {
+    console.error('[FATAL] Failed to start:', error.message);
+    process.exit(1);
+  }
+})();

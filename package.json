@@ -1,18 +1,17 @@
 {
-  "name": "Byte-Labs-Server",
+  "name": "byte-labs-server-bot",
   "version": "1.0.0",
-  "description": "Discord.js verification bot with captcha, slash subcommands, and local JSON storage.",
-  "type": "module",
+  "description": "Byte Labs Server Discord Bot",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
   },
-  "engines": {
-    "node": ">=20.11.0"
-  },
+  "keywords": ["discord", "bot", "byte-labs-server"],
+  "license": "MIT",
   "dependencies": {
-    "@napi-rs/canvas": "^0.1.70",
-    "discord.js": "^14.26.2",
-    "dotenv": "^16.6.1"
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7",
+    "sql.js": "^1.11.0"
   }
 }
