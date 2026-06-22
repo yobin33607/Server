@@ -1,24 +1,21 @@
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'userinfo',
-  aliases: ['ui', 'whois', 'user'],
-  description: 'Show information about a user',
-  usage: '[@user]',
+  data: new SlashCommandBuilder()
+    .setName('userinfo')
+    .setDescription('Show information about a user')
+    .addUserOption(o => o.setName('user').setDescription('The member to show (defaults to you)')),
 
-  async execute(message, args) {
-    let target = message.mentions.members.first() || message.member;
+  async execute(interaction) {
+    const target = interaction.options.getMember('user') || interaction.member;
 
-    if (!target && args[0]) {
-      try {
-        target = await message.guild.members.fetch(args[0]);
-      } catch {
-        return message.reply('Could not find that user.');
-      }
+    if (!target) {
+      return interaction.reply({ content: 'That user is not a member of this server.', flags: MessageFlags.Ephemeral });
     }
 
     const roles = target.roles.cache
-      .filter(r => r.id !== message.guild.id)
+      .filter(r => r.id !== interaction.guild.id)
       .sort((a, b) => b.position - a.position)
       .map(r => r.toString());
 
@@ -37,6 +34,6 @@ module.exports = {
     })
       .setThumbnail(target.user.displayAvatarURL({ size: 1024 }));
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

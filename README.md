@@ -1,19 +1,20 @@
-# Cortex Realm Discord Bot
+# Byte Labs Server Discord Bot
 
-A clean, lightweight, and feature-rich Discord moderation bot built for **Cortex Realm**. Powered by `discord.js` v14 with a local SQLite database — no external database servers required.
+A clean, lightweight, and feature-rich Discord moderation bot built for **Cortex Realm**. Powered by `discord.js` v14 with native **slash commands** and a local SQLite database — no external database servers required.
 
 ## Features
 
-- **Prefix-based command system** — Default prefix is `!`, configurable per server (future)
-- **Ignores reply messages** — Only responds to normal text messages, never to replies
+- **Native slash command system** — All commands use Discord's built-in `/command` interface with autocomplete, option validation, and permission gating
+- **Auto-registration** — Commands register themselves with Discord on startup; set `GUILD_ID` for instant updates while developing
 - **Full moderation suite** — Kick, ban, timeout, mute, warn, purge, nuke, and more
 - **Channel management** — Slowmode, lock/unlock, nickname changes
 - **Role management** — Add, remove, or toggle roles with a single command
 - **Information commands** — Server info, user info, avatar, icon, emoji list, member stats
-- **Local database** — SQLite stores guild configs, user activity, and moderation logs
-- **Command aliases** — Shortcuts like `!p` for ping, `!k` for kick, `!ui` for userinfo
+- **Local database** — SQLite stores user activity and moderation logs
 - **Role hierarchy protection** — Cannot moderate users or manage roles above your own rank
-- **Error fallback** — Every command is wrapped in error handling; failures send a temporary message and log to console
+- **Permission gating** — Each command declares its required permission via `setDefaultMemberPermissions`, plus a runtime safety check
+- **Ephemeral errors** — Validation failures reply privately so they don't clutter the channel
+- **Error fallback** — Every interaction is wrapped in error handling; the bot stays online even if a single command throws
 - **MIT Licensed** — Free to use, modify, and distribute
 - **Zero comments** — Clean, self-documenting code
 
@@ -21,63 +22,63 @@ A clean, lightweight, and feature-rich Discord moderation bot built for **Cortex
 
 ## Commands
 
-All commands use the configured prefix (default `!`). Aliases are listed in parentheses.
+All commands use Discord's native slash command interface. Type `/` in any channel to browse them.
 
 ### Moderation
 
-| Command | Aliases | Permission | Description |
-|---------|---------|------------|-------------|
-| `!kick @user [reason]` | k | Kick Members | Kick a member from the server |
-| `!ban @user [reason]` | b | Ban Members | Ban a member from the server |
-| `!unban <id> [reason]` | ub | Ban Members | Unban a user by their ID |
-| `!timeout @user <duration> [reason]` | to | Moderate Members | Timeout a member (e.g., `10m`, `2h`, `1d`) |
-| `!mute @user <duration> [reason]` | m | Moderate Members | Alias for timeout |
-| `!unmute @user [reason]` | um | Moderate Members | Remove a timeout early |
-| `!warn @user [reason]` | w | Moderate Members | Issue a warning (logged to database) |
-| `!warnings @user` | warns, ws | Moderate Members | View all warnings for a member |
-| `!purge <1-100>` | clear, pr | Manage Messages | Bulk delete recent messages |
-| `!nuke` | clone | Manage Channels | Clone and delete the channel for a clean reset |
+| Command | Permission | Description |
+|---------|------------|-------------|
+| `/kick user:[@user] reason:[text]` | Kick Members | Kick a member from the server |
+| `/ban user:[@user] reason:[text]` | Ban Members | Ban a member from the server |
+| `/unban user_id:[id] reason:[text]` | Ban Members | Unban a user by their ID |
+| `/timeout user:[@user] duration:[10m] reason:[text]` | Moderate Members | Timeout a member (e.g., `10m`, `2h`, `1d`) |
+| `/mute user:[@user] duration:[10m] reason:[text]` | Moderate Members | Alias behavior for timeout |
+| `/unmute user:[@user] reason:[text]` | Moderate Members | Remove a timeout early |
+| `/warn user:[@user] reason:[text]` | Moderate Members | Issue a warning (logged to database) |
+| `/warnings user:[@user]` | Moderate Members | View all warnings for a member |
+| `/purge amount:[1-100]` | Manage Messages | Bulk delete recent messages |
+| `/nuke` | Manage Channels | Clone and delete the channel for a clean reset |
 
 ### Channel Management
 
-| Command | Aliases | Permission | Description |
-|---------|---------|------------|-------------|
-| `!slowmode <seconds\|off>` | sm | Manage Channels | Set channel slowmode (max 21600s / 6h) |
-| `!lock` | lockdown | Manage Channels | Deny @everyone from sending messages |
-| `!unlock` | unlockdown | Manage Channels | Restore @everyone's send permission |
-| `!nick @user <name>` | nickname, setnick | Manage Nicknames | Change a member's nickname (max 32 chars) |
+| Command | Permission | Description |
+|---------|------------|-------------|
+| `/slowmode duration:[seconds\|off]` | Manage Channels | Set channel slowmode (max 21600s / 6h) |
+| `/lock` | Manage Channels | Deny @everyone from sending messages |
+| `/unlock` | Manage Channels | Restore @everyone's send permission |
+| `/nick user:[@user] nickname:[name]` | Manage Nicknames | Change a member's nickname (max 32 chars) |
 
 ### Information
 
-| Command | Aliases | Description |
-|---------|---------|-------------|
-| `!help` | h, commands | Show all available commands with aliases |
-| `!ping` | p, latency | Check bot and API latency |
-| `!botinfo` | stats, bot | Bot stats: servers, users, uptime, ping, version |
-| `!serverinfo` | si, server, guild | Server info: owner, members, channels, boosts, roles |
-| `!servericon` | icon, guildicon | Display the server icon at full resolution |
-| `!userinfo [@user]` | ui, whois, user | User info: ID, roles, account age, join date |
-| `!avatar [@user]` | pf, profilepic | Display a user's avatar at full resolution |
-| `!membercount` | members, mc | Show total, user, bot, and online member counts |
-| `!emojilist` | emojis, el | List all server emojis (static and animated) |
+| Command | Description |
+|---------|-------------|
+| `/help` | Show all available commands |
+| `/ping` | Check bot and API latency |
+| `/botinfo` | Bot stats: servers, users, uptime, ping, version |
+| `/serverinfo` | Server info: owner, members, channels, boosts, roles |
+| `/servericon` | Display the server icon at full resolution |
+| `/userinfo user:[@user]` | User info: ID, roles, account age, join date |
+| `/avatar user:[@user]` | Display a user's avatar at full resolution |
+| `/membercount` | Show total, user, bot, and online member counts |
+| `/emojilist` | List all server emojis (static and animated) |
 
 ### Roles
 
-| Command | Aliases | Permission | Description |
-|---------|---------|------------|-------------|
-| `!role <add\|remove\|toggle> @user <@role\|name\|id>` | roles | Manage Roles | Add, remove, or toggle a role on a member |
+| Command | Permission | Description |
+|---------|------------|-------------|
+| `/role action:[add\|remove\|toggle] user:[@user] role:[@role]` | Manage Roles | Add, remove, or toggle a role on a member |
 
 ---
 
 ## Project Structure
 
 ```
-cortex-realm-bot/
+server/
 ├── src/
 │   ├── index.js              # Entry point — loads commands, events, and starts the bot
-│   ├── database.js           # SQLite database — guilds, users, moderation logs
+│   ├── database.js           # SQLite database — users and moderation logs
 │   ├── utils.js              # Helpers — embed builder, error logging, support link
-│   ├── commands/             # All bot commands
+│   ├── commands/             # All slash commands (one SlashCommandBuilder per file)
 │   │   ├── avatar.js
 │   │   ├── ban.js
 │   │   ├── botinfo.js
@@ -103,27 +104,40 @@ cortex-realm-bot/
 │   │   ├── warn.js
 │   │   └── warnings.js
 │   └── events/
-│       ├── ready.js          # Bot ready event — logs in and sets presence
-│       └── messageCreate.js  # Message handler — parses commands, ignores replies
-├── .env.example              # Environment variable template
+│       ├── ready.js              # Ready event — sets presence and registers slash commands
+│       ├── interactionCreate.js  # Slash command handler
+│       └── messageCreate.js      # Lightweight user-activity tracker
+├── .github/
+│   ├── dependabot.yml            # Automated dependency updates
+│   └── PULL_REQUEST_TEMPLATE.md
+├── .env.example                  # Environment variable template
 ├── .gitignore
-├── LICENSE                   # MIT License
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── LICENSE                       # MIT License
 ├── package.json
 └── README.md
 ```
 
 ---
 
+## How Slash Commands Work
+
+Each file in `src/commands/` exports a `data` object (a `SlashCommandBuilder`) and an `execute(interaction)` handler. On startup:
+
+1. `index.js` loads every command file into a `Collection` keyed by command name.
+2. The `ready` event collects all command definitions and registers them with Discord:
+   - If `GUILD_ID` is set in `.env`, commands register to that single guild and appear **instantly** — ideal for development.
+   - If `GUILD_ID` is left blank, commands register **globally** and may take up to ~1 hour to propagate across all servers.
+3. When a user runs a command, the `interactionCreate` event looks it up and calls its `execute` handler.
+
+There is no separate deploy step — registration happens automatically every time the bot starts.
+
+---
+
 ## Database Schema
 
-The bot uses a local SQLite database (`data.db`) with three tables:
-
-### `guilds`
-| Column | Type | Description |
-|--------|------|-------------|
-| id | TEXT PRIMARY KEY | Discord guild ID |
-| prefix | TEXT DEFAULT '!' | Custom command prefix |
-| created_at | DATETIME | When the guild was first seen |
+The bot uses a local SQLite database (`data.db`).
 
 ### `users`
 | Column | Type | Description |
@@ -143,6 +157,8 @@ The bot uses a local SQLite database (`data.db`) with three tables:
 | type | TEXT NOT NULL | Action type (Kick, Ban, Warn, Timeout, etc.) |
 | reason | TEXT DEFAULT 'No reason provided' | Reason for the action |
 | created_at | DATETIME | When the action occurred |
+
+> A `guilds` table also exists for forward-compatible per-guild settings; it is not required by the slash command flow.
 
 ---
 
@@ -171,8 +187,10 @@ Edit `.env` and add your bot token:
 
 ```
 DISCORD_TOKEN=your_bot_token_here
-PREFIX=!
+GUILD_ID=
 ```
+
+Set `GUILD_ID` to your test server's ID for instant slash command registration, or leave it blank to register globally.
 
 ### Running
 
@@ -184,22 +202,25 @@ npm start
 npm run dev
 ```
 
+On the first successful start you should see a `[COMMANDS] Registered N ... commands` log line. Your slash commands are now available in Discord.
+
 ---
 
 ## Bot Configuration
 
 ### Required Intents
 
-Enable these in the Discord Developer Portal under **Bot > Privileged Gateway Intents**:
+Enable these in the Discord Developer Portal under **Bot > Privileged Gateway Intents** (only the privileged ones need toggling there):
 
 | Intent | Why it's needed |
 |--------|----------------|
-| **Guilds** | Server info, channels, roles |
-| **Guild Messages** | Reading and responding to messages |
-| **Message Content** | Parsing command arguments |
-| **Guild Members** | Fetching member info, role hierarchy checks |
+| **Guilds** | Server info, channels, roles, slash command delivery |
+| **Guild Messages** | User-activity tracking |
+| **Guild Members** *(privileged)* | Fetching member info, role hierarchy checks |
 | **Guild Moderation** | Audit log events for moderation |
-| **Guild Presences** | Online/offline status for membercount |
+| **Guild Presences** *(privileged)* | Online/offline status for membercount |
+
+> The bot no longer requires the **Message Content** intent — commands are handled entirely through Discord's slash command system.
 
 ### Required Permissions
 
@@ -214,13 +235,15 @@ The bot needs these permissions to function fully:
 - Manage Nicknames
 - Manage Roles
 
+When inviting the bot, include the `applications.commands` scope so it can register slash commands.
+
 ---
 
 ## Error Handling
 
-- Every command execution is wrapped in a `try/catch` block
+- Every command execution is wrapped in a `try/catch` block in `interactionCreate`
 - Errors are logged to the console with timestamps
-- If a command fails, a temporary error message is sent to the channel and auto-deleted after 5 seconds
+- If a command fails, an ephemeral error message is sent to the user who ran it
 - The bot stays online and fully operational even if a single command errors
 
 ---
@@ -230,8 +253,16 @@ The bot needs these permissions to function fully:
 - **Role hierarchy protection** — Users cannot moderate or manage roles for members with equal or higher roles
 - **Bot role protection** — Commands check if the bot has the required permissions before proceeding
 - **Self-target prevention** — Users cannot kick, ban, timeout, or warn themselves
-- **Permission checks** — Every command verifies the user has the appropriate Discord permission
+- **Permission gating** — Each command declares its required permission and re-verifies it at runtime
 - **Managed role protection** — Bot-managed roles (boosters, bot roles) cannot be modified via the role command
+
+See [SECURITY.md](./SECURITY.md) for how to report vulnerabilities.
+
+---
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request.
 
 ---
 

@@ -1,13 +1,13 @@
-const { ChannelType } = require('discord.js');
+const { SlashCommandBuilder, ChannelType } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'serverinfo',
-  aliases: ['si', 'server', 'guild'],
-  description: 'Show information about this server',
+  data: new SlashCommandBuilder()
+    .setName('serverinfo')
+    .setDescription('Show information about this server'),
 
-  async execute(message) {
-    const { guild } = message;
+  async execute(interaction) {
+    const guild = interaction.guild;
     await guild.fetch();
 
     const owner = await guild.fetchOwner();
@@ -41,6 +41,6 @@ module.exports = {
       ].join('\n')
     }).setThumbnail(guild.iconURL({ size: 1024 }));
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

@@ -1,22 +1,23 @@
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'servericon',
-  aliases: ['icon', 'guildicon'],
-  description: 'Show the server icon',
+  data: new SlashCommandBuilder()
+    .setName('servericon')
+    .setDescription('Show the server icon'),
 
-  async execute(message) {
-    const { guild } = message;
+  async execute(interaction) {
+    const guild = interaction.guild;
     const iconURL = guild.iconURL({ size: 1024 });
 
     if (!iconURL) {
-      return message.reply('This server does not have an icon.');
+      return interaction.reply({ content: 'This server does not have an icon.', flags: MessageFlags.Ephemeral });
     }
 
     const embed = createEmbed({
       description: `${guild.name}'s server icon`
     }).setImage(iconURL);
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

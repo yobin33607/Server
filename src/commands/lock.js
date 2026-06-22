@@ -1,21 +1,22 @@
-const { PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'lock',
-  aliases: ['lockdown'],
-  description: 'Lock a channel to prevent @everyone from sending messages',
+  data: new SlashCommandBuilder()
+    .setName('lock')
+    .setDescription('Lock this channel to prevent @everyone from sending messages')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
 
-  async execute(message) {
-    if (!message.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-      return message.reply('You need the **Manage Channels** permission to use this command.');
+  async execute(interaction) {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
+      return interaction.reply({ content: 'You need the **Manage Channels** permission to use this command.', flags: MessageFlags.Ephemeral });
     }
 
-    if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
-      return message.reply('I need the **Manage Channels** permission to do that.');
+    if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
+      return interaction.reply({ content: 'I need the **Manage Channels** permission to do that.', flags: MessageFlags.Ephemeral });
     }
 
-    const channel = message.channel;
+    const channel = interaction.channel;
 
     await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
       SendMessages: false
@@ -26,6 +27,6 @@ module.exports = {
       description: `🔒 ${channel} has been locked.`
     });
 
-    await channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

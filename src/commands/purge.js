@@ -1,35 +1,31 @@
-const { PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'purge',
-  aliases: ['clear', 'pr'],
-  description: 'Delete a number of recent messages',
-  usage: '<1-100>',
+  data: new SlashCommandBuilder()
+    .setName('purge')
+    .setDescription('Delete a number of recent messages')
+    .addIntegerOption(o => o.setName('amount').setDescription('How many messages to delete (1-100)').setRequired(true).setMinValue(1).setMaxValue(100))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
-  async execute(message, args) {
-    if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-      return message.reply('You need the **Manage Messages** permission to use this command.');
+  async execute(interaction) {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+      return interaction.reply({ content: 'You need the **Manage Messages** permission to use this command.', flags: MessageFlags.Ephemeral });
     }
 
-    if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ManageMessages)) {
-      return message.reply('I need the **Manage Messages** permission to do that.');
+    if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageMessages)) {
+      return interaction.reply({ content: 'I need the **Manage Messages** permission to do that.', flags: MessageFlags.Ephemeral });
     }
 
-    const amount = parseInt(args[0]);
+    const amount = interaction.options.getInteger('amount');
 
-    if (!amount || isNaN(amount) || amount < 1 || amount > 100) {
-      return message.reply('You need to specify a number between 1 and 100.\nUsage: `!purge 10`');
-    }
-
-    const messages = await message.channel.bulkDelete(amount, true);
+    const messages = await interaction.channel.bulkDelete(amount, true);
 
     const embed = createEmbed({
       color: 0x57F287,
       description: `Deleted ${messages.size} message${messages.size !== 1 ? 's' : ''}.`
     });
 
-    const reply = await message.channel.send({ embeds: [embed] });
-    setTimeout(() => reply.delete().catch(() => {}), 3000);
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   }
 };

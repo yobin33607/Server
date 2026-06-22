@@ -1,39 +1,41 @@
-const { PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 const { modLogs } = require('../database');
 
 module.exports = {
-  name: 'warn',
-  aliases: ['w'],
-  description: 'Warn a member',
-  usage: '<@user> [reason]',
+  data: new SlashCommandBuilder()
+    .setName('warn')
+    .setDescription('Warn a member')
+    .addUserOption(o => o.setName('user').setDescription('The member to warn').setRequired(true))
+    .addStringOption(o => o.setName('reason').setDescription('Reason for the warning'))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 
-  async execute(message, args) {
-    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-      return message.reply('You need the **Moderate Members** permission to use this command.');
+  async execute(interaction) {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      return interaction.reply({ content: 'You need the **Moderate Members** permission to use this command.', flags: MessageFlags.Ephemeral });
     }
 
-    const target = message.mentions.members.first();
+    const target = interaction.options.getMember('user');
     if (!target) {
-      return message.reply('You need to mention a member to warn.\nUsage: `!warn @user [reason]`');
+      return interaction.reply({ content: 'That user is not a member of this server.', flags: MessageFlags.Ephemeral });
     }
 
-    if (target.id === message.author.id) {
-      return message.reply('You cannot warn yourself.');
+    if (target.id === interaction.user.id) {
+      return interaction.reply({ content: 'You cannot warn yourself.', flags: MessageFlags.Ephemeral });
     }
 
-    if (target.roles.highest.position >= message.member.roles.highest.position && message.author.id !== message.guild.ownerId) {
-      return message.reply('You cannot warn a member with equal or higher role than you.');
+    if (target.roles.highest.position >= interaction.member.roles.highest.position && interaction.user.id !== interaction.guild.ownerId) {
+      return interaction.reply({ content: 'You cannot warn a member with equal or higher role than you.', flags: MessageFlags.Ephemeral });
     }
 
-    const reason = args.slice(1).join(' ') || 'No reason provided';
+    const reason = interaction.options.getString('reason') || 'No reason provided';
 
-    modLogs.add(message.guildId, target.id, message.author.id, 'Warn', reason);
+    modLogs.add(interaction.guildId, target.id, interaction.user.id, 'Warn', reason);
 
     await target.send({
       embeds: [createEmbed({
         color: 0xFEE75C,
-        description: `You have been warned in **${message.guild.name}**.\nReason: ${reason}`
+        description: `You have been warned in **${interaction.guild.name}**.\nReason: ${reason}`
       })]
     }).catch(() => {});
 
@@ -42,6 +44,6 @@ module.exports = {
       description: `**${target.user.tag}** has been warned.\nReason: ${reason}`
     });
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

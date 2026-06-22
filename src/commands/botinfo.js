@@ -1,12 +1,13 @@
+const { SlashCommandBuilder } = require('discord.js');
 const { createEmbed, SUPPORT_LINK } = require('../utils');
 
 module.exports = {
-  name: 'botinfo',
-  aliases: ['stats', 'bot'],
-  description: 'Show information about the bot',
+  data: new SlashCommandBuilder()
+    .setName('botinfo')
+    .setDescription('Show information about the bot'),
 
-  async execute(message) {
-    const { client } = message;
+  async execute(interaction) {
+    const { client } = interaction;
     const uptime = process.uptime();
     const days = Math.floor(uptime / 86400);
     const hours = Math.floor((uptime % 86400) / 3600);
@@ -30,6 +31,6 @@ module.exports = {
       ].join('\n')
     }).setThumbnail(client.user.displayAvatarURL());
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

@@ -1,20 +1,21 @@
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'emojilist',
-  aliases: ['emojis', 'el'],
-  description: 'List all server emojis',
+  data: new SlashCommandBuilder()
+    .setName('emojilist')
+    .setDescription('List all server emojis'),
 
-  async execute(message) {
-    const { guild } = message;
+  async execute(interaction) {
+    const guild = interaction.guild;
     const emojis = guild.emojis.cache;
 
     if (!emojis.size) {
-      return message.reply('This server has no emojis.');
+      return interaction.reply({ content: 'This server has no emojis.', flags: MessageFlags.Ephemeral });
     }
 
     const animated = emojis.filter(e => e.animated).map(e => `${e} — \`:${e.name}:\``);
-    const static = emojis.filter(e => !e.animated).map(e => `${e} — \`:${e.name}:\``);
+    const staticEmojis = emojis.filter(e => !e.animated).map(e => `${e} — \`:${e.name}:\``);
 
     const lines = [];
 
@@ -23,9 +24,9 @@ module.exports = {
       lines.push(...animated);
     }
 
-    if (static.length) {
-      lines.push(`### Static (${static.length})`);
-      lines.push(...static);
+    if (staticEmojis.length) {
+      lines.push(`### Static (${staticEmojis.length})`);
+      lines.push(...staticEmojis);
     }
 
     const chunks = [];
@@ -41,8 +42,10 @@ module.exports = {
       })
     );
 
-    for (const embed of embeds) {
-      await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embeds[0]] });
+
+    for (const embed of embeds.slice(1)) {
+      await interaction.followUp({ embeds: [embed] });
     }
   }
 };

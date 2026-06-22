@@ -1,70 +1,64 @@
-const { PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'role',
-  aliases: ['roles'],
-  description: 'Manage roles for a member (add, remove, toggle)',
-  usage: '<add|remove|toggle> <@user> <@role | role name | role ID>',
+  data: new SlashCommandBuilder()
+    .setName('role')
+    .setDescription('Manage roles for a member (add, remove, toggle)')
+    .addStringOption(o => o.setName('action').setDescription('What to do with the role').setRequired(true)
+      .addChoices(
+        { name: 'Add', value: 'add' },
+        { name: 'Remove', value: 'remove' },
+        { name: 'Toggle', value: 'toggle' }
+      ))
+    .addUserOption(o => o.setName('user').setDescription('The member to update').setRequired(true))
+    .addRoleOption(o => o.setName('role').setDescription('The role to add, remove, or toggle').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
 
-  async execute(message, args) {
-    if (!message.member.permissions.has(PermissionFlagsBits.ManageRoles)) {
-      return message.reply('You need the **Manage Roles** permission to use this command.');
+  async execute(interaction) {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageRoles)) {
+      return interaction.reply({ content: 'You need the **Manage Roles** permission to use this command.', flags: MessageFlags.Ephemeral });
     }
 
-    if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ManageRoles)) {
-      return message.reply('I need the **Manage Roles** permission to do that.');
+    if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageRoles)) {
+      return interaction.reply({ content: 'I need the **Manage Roles** permission to do that.', flags: MessageFlags.Ephemeral });
     }
 
-    const action = args[0]?.toLowerCase();
-    if (!action || !['add', 'remove', 'toggle'].includes(action)) {
-      return message.reply('You need to specify an action: `add`, `remove`, or `toggle`.\nUsage: `!role add @user @role`');
-    }
+    const action = interaction.options.getString('action');
 
-    const target = message.mentions.members.first();
+    const target = interaction.options.getMember('user');
     if (!target) {
-      return message.reply('You need to mention a member.\nUsage: `!role add @user @role`');
+      return interaction.reply({ content: 'That user is not a member of this server.', flags: MessageFlags.Ephemeral });
     }
 
-    if (target.roles.highest.position >= message.member.roles.highest.position && message.author.id !== message.guild.ownerId) {
-      return message.reply('You cannot manage roles for a member with equal or higher role than you.');
+    if (target.roles.highest.position >= interaction.member.roles.highest.position && interaction.user.id !== interaction.guild.ownerId) {
+      return interaction.reply({ content: 'You cannot manage roles for a member with equal or higher role than you.', flags: MessageFlags.Ephemeral });
     }
 
-    const roleArg = args.slice(2).join(' ');
-    if (!roleArg) {
-      return message.reply('You need to specify a role.\nUsage: `!role add @user @role`');
-    }
-
-    const role = message.mentions.roles.first()
-      || message.guild.roles.cache.find(r => r.name.toLowerCase() === roleArg.toLowerCase())
-      || message.guild.roles.cache.get(roleArg);
-
-    if (!role) {
-      return message.reply('Could not find that role. Use @mention, role name, or role ID.');
-    }
+    const role = interaction.options.getRole('role');
 
     if (role.managed) {
-      return message.reply('I cannot manage bot-managed roles (e.g., booster roles).');
+      return interaction.reply({ content: 'I cannot manage bot-managed roles (e.g., booster roles).', flags: MessageFlags.Ephemeral });
     }
 
-    if (role.position >= message.guild.members.me.roles.highest.position) {
-      return message.reply('That role is higher than my highest role, so I cannot manage it.');
+    if (role.position >= interaction.guild.members.me.roles.highest.position) {
+      return interaction.reply({ content: 'That role is higher than my highest role, so I cannot manage it.', flags: MessageFlags.Ephemeral });
     }
 
-    if (role.position >= message.member.roles.highest.position && message.author.id !== message.guild.ownerId) {
-      return message.reply('You cannot manage a role that is equal to or higher than your highest role.');
+    if (role.position >= interaction.member.roles.highest.position && interaction.user.id !== interaction.guild.ownerId) {
+      return interaction.reply({ content: 'You cannot manage a role that is equal to or higher than your highest role.', flags: MessageFlags.Ephemeral });
     }
 
     const hasRole = target.roles.cache.has(role.id);
 
     if (action === 'add') {
       if (hasRole) {
-        return message.reply(`**${target.user.tag}** already has the ${role} role.`);
+        return interaction.reply({ content: `**${target.user.tag}** already has the ${role} role.`, flags: MessageFlags.Ephemeral });
       }
       await target.roles.add(role);
     } else if (action === 'remove') {
       if (!hasRole) {
-        return message.reply(`**${target.user.tag}** does not have the ${role} role.`);
+        return interaction.reply({ content: `**${target.user.tag}** does not have the ${role} role.`, flags: MessageFlags.Ephemeral });
       }
       await target.roles.remove(role);
     } else {
@@ -84,6 +78,6 @@ module.exports = {
       description: `Role ${role} has been **${actionLabel}** **${target.user.tag}**.`
     });
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

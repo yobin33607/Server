@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const { Client, GatewayIntentBits, Collection, PermissionFlagsBits } = require('discord.js');
+const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const { init } = require('./database');
@@ -9,7 +9,6 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildModeration,
     GatewayIntentBits.GuildPresences
@@ -17,7 +16,6 @@ const client = new Client({
 });
 
 client.commands = new Collection();
-client.prefix = process.env.PREFIX || '!';
 
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
@@ -25,10 +23,11 @@ const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'))
 for (const file of commandFiles) {
   try {
     const command = require(path.join(commandsPath, file));
-    client.commands.set(command.name, command);
-    for (const alias of command.aliases || []) {
-      client.commands.set(alias, command);
+    if (!command.data || !command.execute) {
+      console.error(`[WARN] Command ${file} is missing a "data" or "execute" export.`);
+      continue;
     }
+    client.commands.set(command.data.name, command);
   } catch (error) {
     console.error(`[WARN] Failed to load command ${file}:`, error.message);
   }

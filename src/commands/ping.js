@@ -1,18 +1,19 @@
+const { SlashCommandBuilder } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'ping',
-  aliases: ['p', 'latency'],
-  description: 'Check the bot latency',
+  data: new SlashCommandBuilder()
+    .setName('ping')
+    .setDescription('Check the bot latency'),
 
-  async execute(message) {
-    const sent = await message.channel.send('Pong!');
-    const latency = sent.createdTimestamp - message.createdTimestamp;
+  async execute(interaction) {
+    const sent = await interaction.reply({ content: 'Pong!', fetchReply: true });
+    const latency = sent.createdTimestamp - interaction.createdTimestamp;
 
     const embed = createEmbed({
-      description: `🏓 Pong!\nLatency: ${latency}ms\nAPI Latency: ${Math.round(message.client.ws.ping)}ms`
+      description: `🏓 Pong!\nLatency: ${latency}ms\nAPI Latency: ${Math.round(interaction.client.ws.ping)}ms`
     });
 
-    await sent.edit({ content: null, embeds: [embed] });
+    await interaction.editReply({ content: null, embeds: [embed] });
   }
 };

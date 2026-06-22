@@ -1,45 +1,44 @@
-const { PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'nick',
-  aliases: ['nickname', 'setnick'],
-  description: 'Change a member\'s nickname',
-  usage: '<@user> <new nickname>',
+  data: new SlashCommandBuilder()
+    .setName('nick')
+    .setDescription("Change a member's nickname")
+    .addUserOption(o => o.setName('user').setDescription('The member to rename').setRequired(true))
+    .addStringOption(o => o.setName('nickname').setDescription('The new nickname (max 32 chars)').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageNicknames),
 
-  async execute(message, args) {
-    if (!message.member.permissions.has(PermissionFlagsBits.ManageNicknames)) {
-      return message.reply('You need the **Manage Nicknames** permission to use this command.');
+  async execute(interaction) {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageNicknames)) {
+      return interaction.reply({ content: 'You need the **Manage Nicknames** permission to use this command.', flags: MessageFlags.Ephemeral });
     }
 
-    if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ManageNicknames)) {
-      return message.reply('I need the **Manage Nicknames** permission to do that.');
+    if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageNicknames)) {
+      return interaction.reply({ content: 'I need the **Manage Nicknames** permission to do that.', flags: MessageFlags.Ephemeral });
     }
 
-    const target = message.mentions.members.first();
+    const target = interaction.options.getMember('user');
     if (!target) {
-      return message.reply('You need to mention a member.\nUsage: `!nick @user New Nickname`');
+      return interaction.reply({ content: 'That user is not a member of this server.', flags: MessageFlags.Ephemeral });
     }
 
     if (!target.moderatable) {
-      return message.reply('I cannot change that member\'s nickname.');
+      return interaction.reply({ content: "I cannot change that member's nickname.", flags: MessageFlags.Ephemeral });
     }
 
-    if (target.id === message.author.id) {
-      return message.reply('You can change your own nickname by right-clicking your name or using Discord profile settings.');
+    if (target.id === interaction.user.id) {
+      return interaction.reply({ content: 'You can change your own nickname by right-clicking your name or using Discord profile settings.', flags: MessageFlags.Ephemeral });
     }
 
-    if (target.roles.highest.position >= message.member.roles.highest.position && message.author.id !== message.guild.ownerId) {
-      return message.reply('You cannot change the nickname of a member with equal or higher role than you.');
+    if (target.roles.highest.position >= interaction.member.roles.highest.position && interaction.user.id !== interaction.guild.ownerId) {
+      return interaction.reply({ content: 'You cannot change the nickname of a member with equal or higher role than you.', flags: MessageFlags.Ephemeral });
     }
 
-    const nickname = args.slice(1).join(' ').trim();
-    if (!nickname) {
-      return message.reply('You need to provide a new nickname.\nUsage: `!nick @user New Nickname`');
-    }
+    const nickname = interaction.options.getString('nickname').trim();
 
     if (nickname.length > 32) {
-      return message.reply('Nickname must be 32 characters or fewer.');
+      return interaction.reply({ content: 'Nickname must be 32 characters or fewer.', flags: MessageFlags.Ephemeral });
     }
 
     const oldNick = target.nickname || target.user.displayName;
@@ -50,6 +49,6 @@ module.exports = {
       description: `Changed **${target.user.tag}**'s nickname.\n**Before:** ${oldNick}\n**After:** ${nickname}`
     });
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

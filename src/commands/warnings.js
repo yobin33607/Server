@@ -1,41 +1,31 @@
-const { PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 const { modLogs } = require('../database');
 
 module.exports = {
-  name: 'warnings',
-  aliases: ['warns', 'ws'],
-  description: 'View warnings for a member',
-  usage: '[@user]',
+  data: new SlashCommandBuilder()
+    .setName('warnings')
+    .setDescription('View warnings for a member')
+    .addUserOption(o => o.setName('user').setDescription('The member to check').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 
-  async execute(message, args) {
-    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-      return message.reply('You need the **Moderate Members** permission to use this command.');
+  async execute(interaction) {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      return interaction.reply({ content: 'You need the **Moderate Members** permission to use this command.', flags: MessageFlags.Ephemeral });
     }
 
-    let target = message.mentions.members.first();
+    const target = interaction.options.getUser('user');
 
-    if (!target) {
-      const userId = args[0];
-      if (userId) {
-        target = await message.guild.members.fetch(userId).catch(() => null);
-      }
-    }
-
-    if (!target) {
-      return message.reply('You need to mention a member to check.\nUsage: `!warnings @user`');
-    }
-
-    const records = modLogs.getByUser(message.guildId, target.id);
+    const records = modLogs.getByUser(interaction.guildId, target.id);
     const warnings = records.filter(r => r.type === 'Warn');
 
     if (warnings.length === 0) {
       const embed = createEmbed({
         color: 0x57F287,
-        description: `**${target.user.tag}** has no warnings.`
+        description: `**${target.tag}** has no warnings.`
       });
 
-      return message.channel.send({ embeds: [embed] });
+      return interaction.reply({ embeds: [embed] });
     }
 
     const list = warnings.map((w, i) =>
@@ -43,9 +33,9 @@ module.exports = {
     ).join('\n\n');
 
     const embed = createEmbed({
-      description: `## Warnings for ${target.user.tag}\n${list}`
+      description: `## Warnings for ${target.tag}\n${list}`
     });
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

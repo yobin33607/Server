@@ -1,30 +1,20 @@
+const { SlashCommandBuilder } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'avatar',
-  aliases: ['pf', 'profilepic'],
-  description: 'Show a user\'s avatar',
-  usage: '[@user]',
+  data: new SlashCommandBuilder()
+    .setName('avatar')
+    .setDescription("Show a user's avatar")
+    .addUserOption(o => o.setName('user').setDescription('The user to show (defaults to you)')),
 
-  async execute(message, args) {
-    let target = message.mentions.users.first();
-
-    if (!target && args[0]) {
-      try {
-        target = await message.client.users.fetch(args[0]);
-      } catch {
-        return message.reply('Could not find that user.');
-      }
-    }
-
-    if (!target) target = message.author;
+  async execute(interaction) {
+    const target = interaction.options.getUser('user') || interaction.user;
 
     const avatarURL = target.displayAvatarURL({ size: 1024 });
     const embed = createEmbed({
       description: `${target.tag}'s avatar`
-    })
-      .setImage(avatarURL);
+    }).setImage(avatarURL);
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

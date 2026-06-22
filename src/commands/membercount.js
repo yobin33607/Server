@@ -1,12 +1,13 @@
+const { SlashCommandBuilder } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'membercount',
-  aliases: ['members', 'mc'],
-  description: 'Show server member statistics',
+  data: new SlashCommandBuilder()
+    .setName('membercount')
+    .setDescription('Show server member statistics'),
 
-  async execute(message) {
-    const { guild } = message;
+  async execute(interaction) {
+    const guild = interaction.guild;
 
     const total = guild.memberCount;
     const bots = guild.members.cache.filter(m => m.user.bot).size;
@@ -27,6 +28,6 @@ module.exports = {
       ].join('\n')
     });
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

@@ -1,57 +1,59 @@
-const { PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 const { modLogs } = require('../database');
 
 module.exports = {
-  name: 'ban',
-  aliases: ['b'],
-  description: 'Ban a member from the server',
-  usage: '<@user> [reason]',
+  data: new SlashCommandBuilder()
+    .setName('ban')
+    .setDescription('Ban a member from the server')
+    .addUserOption(o => o.setName('user').setDescription('The member to ban').setRequired(true))
+    .addStringOption(o => o.setName('reason').setDescription('Reason for the ban'))
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
 
-  async execute(message, args) {
-    if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-      return message.reply('You need the **Ban Members** permission to use this command.');
+  async execute(interaction) {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
+      return interaction.reply({ content: 'You need the **Ban Members** permission to use this command.', flags: MessageFlags.Ephemeral });
     }
 
-    if (!message.guild.members.me.permissions.has(PermissionFlagsBits.BanMembers)) {
-      return message.reply('I need the **Ban Members** permission to do that.');
+    if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.BanMembers)) {
+      return interaction.reply({ content: 'I need the **Ban Members** permission to do that.', flags: MessageFlags.Ephemeral });
     }
 
-    const target = message.mentions.members.first();
+    const target = interaction.options.getMember('user');
     if (!target) {
-      return message.reply('You need to mention a member to ban.\nUsage: `!ban @user [reason]`');
+      return interaction.reply({ content: 'That user is not a member of this server.', flags: MessageFlags.Ephemeral });
     }
 
     if (!target.bannable) {
-      return message.reply('I cannot ban that member. They may have higher permissions than me.');
+      return interaction.reply({ content: 'I cannot ban that member. They may have higher permissions than me.', flags: MessageFlags.Ephemeral });
     }
 
-    if (target.id === message.author.id) {
-      return message.reply('You cannot ban yourself.');
+    if (target.id === interaction.user.id) {
+      return interaction.reply({ content: 'You cannot ban yourself.', flags: MessageFlags.Ephemeral });
     }
 
-    if (target.roles.highest.position >= message.member.roles.highest.position && message.author.id !== message.guild.ownerId) {
-      return message.reply('You cannot ban a member with equal or higher role than you.');
+    if (target.roles.highest.position >= interaction.member.roles.highest.position && interaction.user.id !== interaction.guild.ownerId) {
+      return interaction.reply({ content: 'You cannot ban a member with equal or higher role than you.', flags: MessageFlags.Ephemeral });
     }
 
-    const reason = args.slice(1).join(' ') || 'No reason provided';
+    const reason = interaction.options.getString('reason') || 'No reason provided';
 
     await target.send({
       embeds: [createEmbed({
         color: 0xED4245,
-        description: `You have been banned from **${message.guild.name}**.\nReason: ${reason}`
+        description: `You have been banned from **${interaction.guild.name}**.\nReason: ${reason}`
       })]
     }).catch(() => {});
 
     await target.ban({ reason });
 
-    modLogs.add(message.guildId, target.id, message.author.id, 'Ban', reason);
+    modLogs.add(interaction.guildId, target.id, interaction.user.id, 'Ban', reason);
 
     const embed = createEmbed({
       color: 0xED4245,
       description: `**${target.user.tag}** has been banned.\nReason: ${reason}`
     });
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

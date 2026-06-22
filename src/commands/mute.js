@@ -1,12 +1,15 @@
-const { PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 const { modLogs } = require('../database');
 
 module.exports = {
-  name: 'mute',
-  aliases: ['m'],
-  description: 'Mute a member for a specified duration',
-  usage: '<@user> <duration> [reason] | duration: 1m, 1h, 1d',
+  data: new SlashCommandBuilder()
+    .setName('mute')
+    .setDescription('Mute a member for a specified duration')
+    .addUserOption(o => o.setName('user').setDescription('The member to mute').setRequired(true))
+    .addStringOption(o => o.setName('duration').setDescription('Duration, e.g. 10m, 2h, 1d').setRequired(true))
+    .addStringOption(o => o.setName('reason').setDescription('Reason for the mute'))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 
   parseDuration(input) {
     const match = input.match(/^(\d+)([mhd])$/);
@@ -33,57 +36,52 @@ module.exports = {
     return parts.join(' ') || '0m';
   },
 
-  async execute(message, args) {
-    if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-      return message.reply('You need the **Moderate Members** permission to use this command.');
+  async execute(interaction) {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      return interaction.reply({ content: 'You need the **Moderate Members** permission to use this command.', flags: MessageFlags.Ephemeral });
     }
 
-    if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-      return message.reply('I need the **Moderate Members** permission to do that.');
+    if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      return interaction.reply({ content: 'I need the **Moderate Members** permission to do that.', flags: MessageFlags.Ephemeral });
     }
 
-    const target = message.mentions.members.first();
+    const target = interaction.options.getMember('user');
     if (!target) {
-      return message.reply('You need to mention a member to mute.\nUsage: `!mute @user 10m [reason]`');
+      return interaction.reply({ content: 'That user is not a member of this server.', flags: MessageFlags.Ephemeral });
     }
 
     if (!target.moderatable) {
-      return message.reply('I cannot mute that member.');
+      return interaction.reply({ content: 'I cannot mute that member.', flags: MessageFlags.Ephemeral });
     }
 
-    if (target.id === message.author.id) {
-      return message.reply('You cannot mute yourself.');
+    if (target.id === interaction.user.id) {
+      return interaction.reply({ content: 'You cannot mute yourself.', flags: MessageFlags.Ephemeral });
     }
 
-    if (target.roles.highest.position >= message.member.roles.highest.position && message.author.id !== message.guild.ownerId) {
-      return message.reply('You cannot mute a member with equal or higher role than you.');
+    if (target.roles.highest.position >= interaction.member.roles.highest.position && interaction.user.id !== interaction.guild.ownerId) {
+      return interaction.reply({ content: 'You cannot mute a member with equal or higher role than you.', flags: MessageFlags.Ephemeral });
     }
 
-    const durationInput = args[1];
-    if (!durationInput) {
-      return message.reply('You need to specify a duration.\nUsage: `!mute @user 10m [reason]`');
-    }
-
-    const durationMs = this.parseDuration(durationInput);
+    const durationMs = this.parseDuration(interaction.options.getString('duration'));
     if (!durationMs) {
-      return message.reply('Invalid duration format. Use `10m`, `2h`, or `1d`.');
+      return interaction.reply({ content: 'Invalid duration format. Use `10m`, `2h`, or `1d`.', flags: MessageFlags.Ephemeral });
     }
 
     if (durationMs > 2419200000) {
-      return message.reply('Mute duration cannot exceed 28 days.');
+      return interaction.reply({ content: 'Mute duration cannot exceed 28 days.', flags: MessageFlags.Ephemeral });
     }
 
-    const reason = args.slice(2).join(' ') || 'No reason provided';
+    const reason = interaction.options.getString('reason') || 'No reason provided';
 
     await target.timeout(durationMs, reason);
 
-    modLogs.add(message.guildId, target.id, message.author.id, 'Mute', reason);
+    modLogs.add(interaction.guildId, target.id, interaction.user.id, 'Mute', reason);
 
     const embed = createEmbed({
       color: 0xED4245,
       description: `**${target.user.tag}** has been muted for ${this.formatDuration(durationMs)}.\nReason: ${reason}`
     });
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };

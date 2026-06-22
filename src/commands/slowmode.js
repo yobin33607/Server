@@ -1,26 +1,23 @@
-const { PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { createEmbed } = require('../utils');
 
 module.exports = {
-  name: 'slowmode',
-  aliases: ['sm'],
-  description: 'Set slowmode for the current channel',
-  usage: '<seconds | off>',
+  data: new SlashCommandBuilder()
+    .setName('slowmode')
+    .setDescription('Set slowmode for the current channel')
+    .addStringOption(o => o.setName('duration').setDescription('Seconds (0-21600) or "off"').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
 
-  async execute(message, args) {
-    if (!message.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-      return message.reply('You need the **Manage Channels** permission to use this command.');
+  async execute(interaction) {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
+      return interaction.reply({ content: 'You need the **Manage Channels** permission to use this command.', flags: MessageFlags.Ephemeral });
     }
 
-    if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
-      return message.reply('I need the **Manage Channels** permission to do that.');
+    if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
+      return interaction.reply({ content: 'I need the **Manage Channels** permission to do that.', flags: MessageFlags.Ephemeral });
     }
 
-    const input = args[0]?.toLowerCase();
-
-    if (!input) {
-      return message.reply('You need to specify a duration in seconds or `off`.\nUsage: `!slowmode 5` to set 5s, `!slowmode off` to disable.');
-    }
+    const input = interaction.options.getString('duration').toLowerCase();
 
     let seconds;
 
@@ -30,23 +27,23 @@ module.exports = {
       seconds = parseInt(input);
 
       if (isNaN(seconds) || seconds < 0) {
-        return message.reply('Invalid value. Use a number between 0 and 21600, or `off`.');
+        return interaction.reply({ content: 'Invalid value. Use a number between 0 and 21600, or `off`.', flags: MessageFlags.Ephemeral });
       }
 
       if (seconds > 21600) {
-        return message.reply('Slowmode cannot exceed 21600 seconds (6 hours).');
+        return interaction.reply({ content: 'Slowmode cannot exceed 21600 seconds (6 hours).', flags: MessageFlags.Ephemeral });
       }
     }
 
-    await message.channel.setRateLimitPerUser(seconds);
+    await interaction.channel.setRateLimitPerUser(seconds);
 
     const display = seconds === 0 ? 'disabled' : `${seconds} second${seconds !== 1 ? 's' : ''}`;
 
     const embed = createEmbed({
       color: 0x57F287,
-      description: `Slowmode has been set to **${display}** for ${message.channel}.`
+      description: `Slowmode has been set to **${display}** for ${interaction.channel}.`
     });
 
-    await message.channel.send({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
   }
 };
