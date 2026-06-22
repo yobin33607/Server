@@ -1,10 +1,14 @@
 require('dotenv').config();
 
+const express = require('express');
+const path = require('path');
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
-const path = require('path');
 const { init, verification } = require('./database');
 const { VerificationService } = require('./verification/verification-service');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
 
 const client = new Client({
   intents: [
@@ -23,16 +27,8 @@ const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
 
 for (const file of commandFiles) {
-  try {
-    const command = require(path.join(commandsPath, file));
-    if (!command.data || !command.execute) {
-      console.error(`[WARN] Command ${file} is missing a "data" or "execute" export.`);
-      continue;
-    }
-    client.commands.set(command.data.name, command);
-  } catch (error) {
-    console.error(`[WARN] Failed to load command ${file}:`, error.message);
-  }
+  const command = require(path.join(commandsPath, file));
+  client.commands.set(command.data.name, command);
 }
 
 const eventsPath = path.join(__dirname, 'events');
@@ -47,13 +43,31 @@ for (const file of eventFiles) {
   }
 }
 
+app.use(express.static(path.join(__dirname, 'web')));
+app.use(express.json());
+
+app.get('/api/stats', (req, res) => {
+  res.json({
+    servers: client.guilds.cache.size,
+    users: client.users.cache.size,
+    ping: client.ws.ping
+  });
+});
+
+app.get('/privacy', (req, res) => {
+  res.sendFile(path.join(__dirname, 'web', 'privacy.html'));
+});
+
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, 'web', 'terms.html'));
+});
+
 (async () => {
   try {
     await init();
-    console.log('[DB] Database initialized');
     await client.login(process.env.DISCORD_TOKEN);
+    app.listen(PORT, () => console.log(`Dashboard running on ${PORT}`));
   } catch (error) {
-    console.error('[FATAL] Failed to start:', error.message);
-    process.exit(1);
+    console.error(error);
   }
 })();

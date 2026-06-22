@@ -1,0 +1,1 @@
+async function load(){const r=await fetch('/api/stats');const d=await r.json();document.getElementById('stats').innerHTML=`Servers: ${d.servers}<br>Users: ${d.users}<br>Ping: ${d.ping}ms`;};load();setInterval(load,5000);
