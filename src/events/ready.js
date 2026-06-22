@@ -6,7 +6,7 @@ module.exports = {
     console.log(`[READY] Logged in as ${client.user.tag}`);
     console.log(`[READY] Serving ${client.guilds.cache.size} guilds`);
 
-    client.user.setActivity('Cortex Realm', { type: 3 });
+    client.user.setActivity('Byte Labs Server', { type: 3 });
 
     const commands = [...client.commands.values()].map(c => c.data.toJSON());
     const guildId = process.env.GUILD_ID;

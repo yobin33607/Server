@@ -1,6 +1,6 @@
 # Byte Labs Server Discord Bot
 
-A clean, lightweight, and feature-rich Discord moderation bot built for **Cortex Realm**. Powered by `discord.js` v14 with native **slash commands** and a local SQLite database — no external database servers required.
+A clean, lightweight, and feature-rich Discord moderation bot built for **Byte Labs**. Powered by `discord.js` v14 with native **slash commands** and a local SQLite database — no external database servers required.
 
 ## Features
 
@@ -173,8 +173,8 @@ The bot uses a local SQLite database (`data.db`).
 
 ```bash
 # Clone the repository
-git clone <repo-url>
-cd cortex-realm-bot
+git clone https://github.com/Byte-Labs-offical/Server
+cd server
 
 # Install dependencies
 npm install
@@ -270,12 +270,12 @@ Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) befo
 
 MIT — see [LICENSE](./LICENSE).
 
-Copyright (c) 2026 **Cortex Realm**
+Copyright (c) 2026 **Byte Labs**
 
 ---
 
 ## Support
 
-[Join the Cortex Realm Support Server](https://discord.gg/EWr3GgP6fe)
+[Join the Byte Labs Server](https://discord.gg/wZuTsF5Z2P)
 
 For issues, feature requests, or contributions, please open an issue or pull request on the repository.

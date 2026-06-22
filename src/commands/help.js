@@ -12,7 +12,7 @@ module.exports = {
       .sort();
 
     const embed = createEmbed({
-      description: `## Cortex Realm Bot\n\n${commands.join('\n')}\n\n[Join Support Server](https://discord.gg/EWr3GgP6fe)`
+      description: `## Byte Labs Server Bot\n\n${commands.join('\n')}\n\n[Join Support Server](https://discord.gg/wZuTsF5Z2P)`
     });
 
     await interaction.reply({ embeds: [embed] });

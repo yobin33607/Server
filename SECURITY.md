@@ -16,7 +16,7 @@ The latest release on the `main` branch is the only actively supported version.
 Instead, report them privately through one of the following channels:
 
 - Use GitHub's [private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) ("Report a vulnerability" under the repository's **Security** tab).
-- Or contact the maintainers directly in the [Cortex Realm Support Server](https://discord.gg/EWr3GgP6fe).
+- Or contact the maintainers directly in the [Byte Labs Server](https://discord.gg/wZuTsF5Z2P).
 
 Please include:
 

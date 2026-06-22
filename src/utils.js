@@ -1,13 +1,13 @@
 const { EmbedBuilder } = require('discord.js');
 
-const SUPPORT_LINK = 'https://discord.gg/EWr3GgP6fe';
+const SUPPORT_LINK = 'https://discord.gg/wZuTsF5Z2P';
 
 function createEmbed(options = {}) {
   return new EmbedBuilder()
     .setColor(options.color || 0x5865F2)
     .setDescription(options.description || '')
     .setTimestamp()
-    .setFooter({ text: 'Cortex Realm', iconURL: options.iconURL || null });
+    .setFooter({ text: 'Byte Labs Server', iconURL: options.iconURL || null });
 }
 
 function createErrorEmbed(error) {

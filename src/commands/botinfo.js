@@ -17,7 +17,7 @@ module.exports = {
 
     const embed = createEmbed({
       description: [
-        '## Cortex Realm Bot',
+        '## Byte Labs Server Bot',
         '',
         `**Commands:** ${client.commands.size}`,
         `**Servers:** ${client.guilds.cache.size}`,
