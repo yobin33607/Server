@@ -135,7 +135,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'web', 'dashboard.html'));
 });
 
-app.get('/activity', requireAuth, (req, res) => {
+app.get('/activity', (req, res) => {
   res.sendFile(path.join(__dirname, 'web', 'activity.html'));
 });
 
