@@ -39,6 +39,76 @@
       </section>
     </main>
   </div>
-  <script src="/js/activity.js"></script>
+  <script>
+  /* Inline fallback: activity.js content so page works even if /js/activity.js fails to load */
+  async function loadActivity() {
+    try {
+      const userResp = await fetch('/api/user');
+      const userData = await userResp.json();
+
+      if (!userData.authenticated) {
+        document.getElementById('activity-user').innerHTML = `
+          <p>Please sign in with Discord to view activity and manage your servers.</p>
+          <a class="button button-primary" href="/login">Login with Discord</a>
+        `;
+        document.getElementById('activity-guilds').innerHTML = '<p>No servers available until you sign in.</p>';
+        document.getElementById('activity-actions').innerHTML = '';
+        return;
+      }
+
+      document.getElementById('activity-user').innerHTML = `
+        <p><strong>${userData.user.username}#${userData.user.discriminator}</strong></p>
+        <p>ID: ${userData.user.id}</p>
+        <p>Signed in with Discord OAuth.</p>
+      `;
+
+      const guilds = userData.user.guilds || [];
+      const manageGuilds = guilds.filter(g => g.owner || (g.permissions & 0x8) || (g.permissions & 0x20));
+
+      document.getElementById('activity-guilds').innerHTML = manageGuilds.length > 0
+        ? `<div class="guild-list">${manageGuilds.map(g => `
+            <div class="guild-card">
+              <div class="guild-card-header">
+                <div>
+                  <strong>${g.name}</strong>
+                  <p>${g.owner ? 'Owner' : 'Manage Server'}</p>
+                </div>
+                <span class="guild-badge">${g.botPresent ? 'Bot Installed' : 'Bot Not Installed'}</span>
+              </div>
+              <p class="guild-meta">Server ID: ${g.id}</p>
+              <div class="guild-actions">
+                <a class="button button-primary" href="https://discord.com/channels/${g.id}" target="_blank">Open Server</a>
+              </div>
+            </div>
+          `).join('')}</div>`
+        : '<p>No servers available for management.</p>';
+
+      document.getElementById('activity-actions').innerHTML = manageGuilds.length > 0
+        ? `<div class="guild-actions">${manageGuilds.map(g => `
+            <a class="button button-secondary" href="https://discord.com/channels/${g.id}" target="_blank">Open ${g.name}</a>
+          `).join('')}</div>`
+        : '<p>Visit Discord to join or manage your servers.</p>';
+    } catch (err) {
+      document.getElementById('activity-user').innerText = 'Failed to load activity.';
+      console.error('activity load error', err);
+    }
+  }
+
+  /* Minimal critical CSS fallback so the page isn't unstyled if /css/style.css fails */
+  (function injectCriticalCSS(){
+    const css = `
+      body{font-family:Inter,system-ui,Arial,sans-serif;background:#090b12;color:#e7edf2;margin:0;padding:20px}
+      .page-shell{max-width:1080px;margin:0 auto}
+      .site-header{display:flex;justify-content:space-between;align-items:center}
+      h1{font-size:28px;margin:6px 0}
+      .button{display:inline-block;padding:8px 14px;border-radius:999px;text-decoration:none;background:#5865f2;color:#fff}
+      .card{background:#111;padding:18px;border-radius:12px;margin-top:18px}
+      .guild-card{background:#0f1720;padding:12px;border-radius:12px;margin-bottom:12px}
+    `;
+    const s = document.createElement('style'); s.setAttribute('data-inline','activity-critical'); s.textContent = css; document.head.appendChild(s);
+  })();
+
+  loadActivity();
+  </script>
 </body>
 </html>
