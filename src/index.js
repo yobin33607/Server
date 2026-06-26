@@ -7,7 +7,7 @@ const DiscordStrategy = require('passport-discord').Strategy;
 const path = require('path');
 const { Client, GatewayIntentBits, Collection, Partials } = require('discord.js');
 const fs = require('fs');
-const { init, verification, reactionRoles } = require('./database');
+const { init, verification, reactionRoles, modmail } = require('./database');
 const { VerificationService } = require('./verification/verification-service');
 
 const app = express();
@@ -72,6 +72,7 @@ const client = new Client({
 client.commands = new Collection();
 client.verification = new VerificationService(verification);
 client.reactionRoles = reactionRoles;
+client.modmail = modmail;
 
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));

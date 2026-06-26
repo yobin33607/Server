@@ -104,6 +104,29 @@ async function init() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS modmail_guilds (
+      guild_id TEXT PRIMARY KEY,
+      enabled INTEGER DEFAULT 1,
+      support_channel_id TEXT,
+      log_channel_id TEXT,
+      category_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS modmail_threads (
+      thread_channel_id TEXT PRIMARY KEY,
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      status TEXT DEFAULT 'open',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      closed_at DATETIME
+    )
+  `);
+
   save();
   return db;
 }
@@ -592,4 +615,108 @@ const reactionRoles = {
   }
 };
 
-module.exports = { init, guilds, users, modLogs, verification, reactionRoles };
+const modmail = {
+  getGuild(guildId) {
+    const stmt = db.prepare('SELECT * FROM modmail_guilds WHERE guild_id = ?');
+    stmt.bind([guildId]);
+    let row;
+    if (stmt.step()) {
+      row = stmt.getAsObject();
+    }
+    stmt.free();
+    return row;
+  },
+
+  ensureGuild(guildId) {
+    let row = modmail.getGuild(guildId);
+    if (!row) {
+      db.run('INSERT INTO modmail_guilds (guild_id) VALUES (?)', [guildId]);
+      save();
+      row = modmail.getGuild(guildId);
+    }
+    return row;
+  },
+
+  updateGuildSettings(guildId, patch) {
+    modmail.ensureGuild(guildId);
+
+    const assignments = [];
+    const values = [];
+
+    const columns = {
+      enabled: 'enabled',
+      supportChannelId: 'support_channel_id',
+      logChannelId: 'log_channel_id',
+      categoryId: 'category_id'
+    };
+
+    for (const [key, column] of Object.entries(columns)) {
+      if (patch[key] === undefined) continue;
+      let value = patch[key];
+      if (key === 'enabled') {
+        value = value ? 1 : 0;
+      }
+      assignments.push(`${column} = ?`);
+      values.push(value);
+    }
+
+    assignments.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(guildId);
+
+    db.run(`UPDATE modmail_guilds SET ${assignments.join(', ')} WHERE guild_id = ?`, values);
+    save();
+    return modmail.getGuild(guildId);
+  },
+
+  getAllEnabled() {
+    const stmt = db.prepare('SELECT * FROM modmail_guilds WHERE enabled = 1');
+    const results = [];
+    while (stmt.step()) {
+      results.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return results;
+  },
+
+  addThread(guildId, userId, threadChannelId) {
+    db.run(
+      'INSERT OR REPLACE INTO modmail_threads (thread_channel_id, guild_id, user_id, status, created_at, closed_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, NULL)',
+      [threadChannelId, guildId, userId, 'open']
+    );
+    save();
+    return modmail.getThreadByChannel(threadChannelId);
+  },
+
+  getThreadByUser(guildId, userId) {
+    const stmt = db.prepare('SELECT * FROM modmail_threads WHERE guild_id = ? AND user_id = ? AND status = ?');
+    stmt.bind([guildId, userId, 'open']);
+    let row;
+    if (stmt.step()) {
+      row = stmt.getAsObject();
+    }
+    stmt.free();
+    return row;
+  },
+
+  getThreadByChannel(threadChannelId) {
+    const stmt = db.prepare('SELECT * FROM modmail_threads WHERE thread_channel_id = ?');
+    stmt.bind([threadChannelId]);
+    let row;
+    if (stmt.step()) {
+      row = stmt.getAsObject();
+    }
+    stmt.free();
+    return row;
+  },
+
+  closeThread(threadChannelId) {
+    db.run(
+      'UPDATE modmail_threads SET status = ?, closed_at = CURRENT_TIMESTAMP WHERE thread_channel_id = ?',
+      ['closed', threadChannelId]
+    );
+    save();
+    return modmail.getThreadByChannel(threadChannelId);
+  }
+};
+
+module.exports = { init, guilds, users, modLogs, verification, reactionRoles, modmail };
