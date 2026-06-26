@@ -92,6 +92,18 @@ async function init() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS reaction_roles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      message_id TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   save();
   return db;
 }
@@ -488,4 +500,96 @@ const verification = {
   }
 };
 
-module.exports = { init, guilds, users, modLogs, verification };
+const reactionRoles = {
+  addRule(guildId, channelId, messageId, emoji, roleId) {
+    db.run(
+      'INSERT INTO reaction_roles (guild_id, channel_id, message_id, emoji, role_id) VALUES (?, ?, ?, ?, ?)',
+      [guildId, channelId, messageId, emoji, roleId]
+    );
+
+    const stmt = db.prepare('SELECT * FROM reaction_roles WHERE id = last_insert_rowid()');
+    let row;
+    if (stmt.step()) {
+      row = stmt.getAsObject();
+    }
+    stmt.free();
+    save();
+    return row;
+  },
+
+  removeRule(guildId, channelId, messageId, emoji) {
+    const stmt = db.prepare(
+      'SELECT * FROM reaction_roles WHERE guild_id = ? AND channel_id = ? AND message_id = ? AND emoji = ?'
+    );
+    stmt.bind([guildId, channelId, messageId, emoji]);
+    let row;
+    if (stmt.step()) {
+      row = stmt.getAsObject();
+    }
+    stmt.free();
+
+    if (!row) {
+      return null;
+    }
+
+    db.run('DELETE FROM reaction_roles WHERE id = ?', [row.id]);
+    save();
+    return row;
+  },
+
+  getRuleById(id) {
+    const stmt = db.prepare('SELECT * FROM reaction_roles WHERE id = ?');
+    stmt.bind([id]);
+    let row;
+    if (stmt.step()) {
+      row = stmt.getAsObject();
+    }
+    stmt.free();
+    return row;
+  },
+
+  getRule(guildId, channelId, messageId, emoji) {
+    const stmt = db.prepare(
+      'SELECT * FROM reaction_roles WHERE guild_id = ? AND channel_id = ? AND message_id = ? AND emoji = ?'
+    );
+    stmt.bind([guildId, channelId, messageId, emoji]);
+    let row;
+    if (stmt.step()) {
+      row = stmt.getAsObject();
+    }
+    stmt.free();
+    return row;
+  },
+
+  getRulesByMessage(guildId, messageId) {
+    const stmt = db.prepare('SELECT * FROM reaction_roles WHERE guild_id = ? AND message_id = ? ORDER BY created_at ASC');
+    stmt.bind([guildId, messageId]);
+    const results = [];
+    while (stmt.step()) {
+      results.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return results;
+  },
+
+  getRulesByGuild(guildId, channelId = null) {
+    let query = 'SELECT * FROM reaction_roles WHERE guild_id = ?';
+    const params = [guildId];
+    if (channelId) {
+      query += ' AND channel_id = ?';
+      params.push(channelId);
+    }
+    query += ' ORDER BY created_at ASC';
+
+    const stmt = db.prepare(query);
+    stmt.bind(params);
+    const results = [];
+    while (stmt.step()) {
+      results.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return results;
+  }
+};
+
+module.exports = { init, guilds, users, modLogs, verification, reactionRoles };
