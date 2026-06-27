@@ -94,7 +94,10 @@ for (const file of eventFiles) {
   }
 }
 
+const peerboxBuildPath = path.join(__dirname, 'peerbox', 'out');
+
 app.use(express.static(path.join(__dirname, 'web')));
+app.use('/peerbox', express.static(peerboxBuildPath, { index: 'index.html', fallthrough: true }));
 app.use(express.json());
 
 app.get('/login', passport.authenticate('discord'));
@@ -165,12 +168,28 @@ app.get('/terms', (req, res) => {
   res.sendFile(path.join(__dirname, 'web', 'terms.html'));
 });
 
+app.get('/peerbox', (req, res) => {
+  res.sendFile(path.join(peerboxBuildPath, 'index.html'));
+});
+
+app.get('/peerbox/*', (req, res) => {
+  res.sendFile(path.join(peerboxBuildPath, 'index.html'));
+});
+
 (async () => {
   try {
     await init();
-    await client.login(process.env.DISCORD_TOKEN);
+
+    if (process.env.DISCORD_TOKEN) {
+      await client.login(process.env.DISCORD_TOKEN);
+      console.log('Discord bot connected');
+    } else {
+      console.warn('DISCORD_TOKEN not set; starting web server without Discord login');
+    }
+
     app.listen(PORT, () => console.log(`Dashboard running on ${PORT}`));
   } catch (error) {
     console.error(error);
+    app.listen(PORT, () => console.log(`Dashboard running on ${PORT}`));
   }
 })();

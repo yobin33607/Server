@@ -127,6 +127,17 @@ async function init() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS backups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      backup_id TEXT NOT NULL UNIQUE,
+      guild_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   save();
   return db;
 }
@@ -615,6 +626,76 @@ const reactionRoles = {
   }
 };
 
+function mapBackup(row) {
+  if (!row) {
+    return null;
+  }
+
+  let payload = row.payload;
+  if (typeof payload === 'string') {
+    try {
+      payload = JSON.parse(payload);
+    } catch {
+      payload = row.payload;
+    }
+  }
+
+  return {
+    id: row.id,
+    backupId: row.backup_id,
+    guildId: row.guild_id,
+    name: row.name,
+    payload,
+    createdAt: row.created_at
+  };
+}
+
+const backups = {
+  create(data) {
+    db.run(
+      'INSERT INTO backups (backup_id, guild_id, name, payload) VALUES (?, ?, ?, ?)',
+      [data.backupId, data.guildId, data.name, JSON.stringify(data.payload || data)]
+    );
+    save();
+
+    const stmt = db.prepare('SELECT * FROM backups WHERE backup_id = ?');
+    stmt.bind([data.backupId]);
+    let row;
+    if (stmt.step()) {
+      row = stmt.getAsObject();
+    }
+    stmt.free();
+    return mapBackup(row);
+  },
+
+  getById(backupId) {
+    const stmt = db.prepare('SELECT * FROM backups WHERE backup_id = ?');
+    stmt.bind([backupId]);
+    let row;
+    if (stmt.step()) {
+      row = stmt.getAsObject();
+    }
+    stmt.free();
+    return mapBackup(row);
+  },
+
+  listByGuild(guildId) {
+    const stmt = db.prepare('SELECT * FROM backups WHERE guild_id = ? ORDER BY created_at DESC');
+    stmt.bind([guildId]);
+    const results = [];
+    while (stmt.step()) {
+      results.push(mapBackup(stmt.getAsObject()));
+    }
+    stmt.free();
+    return results;
+  },
+
+  remove(backupId) {
+    db.run('DELETE FROM backups WHERE backup_id = ?', [backupId]);
+    save();
+  }
+};
+
 const modmail = {
   getGuild(guildId) {
     const stmt = db.prepare('SELECT * FROM modmail_guilds WHERE guild_id = ?');
@@ -719,4 +800,4 @@ const modmail = {
   }
 };
 
-module.exports = { init, guilds, users, modLogs, verification, reactionRoles, modmail };
+module.exports = { init, guilds, users, modLogs, verification, reactionRoles, modmail, backups };
